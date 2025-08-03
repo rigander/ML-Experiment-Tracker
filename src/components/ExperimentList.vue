@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 
@@ -7,10 +7,6 @@ const props = defineProps({
     experiments: {
         type: Array,
         required: true
-    },
-    data: {
-        type: Array,
-        default: () => []
     }
 });
 
@@ -23,10 +19,9 @@ const filteredExperiments = computed(() =>
         .map(id => ({ experiment_id: id }))
 );
 
-const onSelectionChange = (e) => {
-    selectedExperiments.value = e.value.map(item => item.experiment_id);
-    emit('selection-change', selectedExperiments.value);
-};
+watch(selectedExperiments, (newVal) => {
+    emit('selection-change', newVal.map(item => item.experiment_id));
+}, { deep: true });
 </script>
 
 <template>
@@ -38,7 +33,6 @@ const onSelectionChange = (e) => {
                 selectionMode="multiple"
                 dataKey="experiment_id"
                 class="small-table"
-                @selection-change="onSelectionChange"
         >
             <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
             <Column field="experiment_id" header="Experiment ID"></Column>

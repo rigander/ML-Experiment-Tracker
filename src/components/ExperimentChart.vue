@@ -3,123 +3,102 @@ import { ref, onMounted, watch } from 'vue';
 import * as echarts from 'echarts';
 
 const props = defineProps({
-    data: {
-        type: Array,
-        required: true
-    },
-    selectedExperiments: {
-        type: Array,
-        default: () => []
-    }
+    data: Array,
+    selectedExperiments: Array
 });
 
 const chart = ref(null);
 let chartInstance = null;
 
 const initChart = () => {
-    if (chartInstance) {
-        chartInstance.dispose();
-    }
-    chartInstance = echarts.init(chart.value);
+    if (chartInstance) chartInstance.dispose();
+    chartInstance = echarts.init(chart.value, null, { renderer: 'canvas' });
     updateChart();
 };
 
 const updateChart = () => {
     if (!chartInstance) return;
 
-    const series = [];
-    const legendData = [];
-
-
     const filteredData = props.data.filter(item =>
         props.selectedExperiments.includes(item.experiment_id)
     );
 
-
     const experimentsData = {};
     filteredData.forEach(item => {
-        if (!experimentsData[item.experiment_id]) {
-            experimentsData[item.experiment_id] = [];
-        }
+        if (!experimentsData[item.experiment_id]) experimentsData[item.experiment_id] = [];
         experimentsData[item.experiment_id].push(item);
     });
 
+    const series = [];
+    const legendData = [];
 
-    Object.keys(experimentsData).forEach(expId => {
-        const expData = experimentsData[expId];
-
-
-        expData.sort((a, b) => a.step - b.step);
-
+    Object.entries(experimentsData).forEach(([expId, values]) => {
+        values.sort((a, b) => a.step - b.step);
         series.push({
             name: `Experiment ${expId}`,
             type: 'line',
-            data: expData.map(item => [item.step, item.value]),
-            symbol: 'circle',
-            symbolSize: 6,
+            data: values.map(v => [v.step, v.value]),
+            symbol: 'none',
             lineStyle: {
                 width: 2
             }
         });
-
         legendData.push(`Experiment ${expId}`);
     });
 
-    const option = {
+    chartInstance.setOption({
+        backgroundColor: '#1e1e1e',
         tooltip: {
             trigger: 'axis',
-            formatter: params => {
-                return params.map(p =>
-                    `${p.seriesName}<br/>Step: ${p.value[0]}<br/>Value: ${p.value[1]}`
-                ).join('<br/>');
-            }
+            textStyle: { color: '#fff' },
+            backgroundColor: '#333'
         },
         legend: {
             data: legendData,
-            bottom: 0
+            textStyle: { color: '#eee' },
+            bottom: 10
         },
         grid: {
-            left: '3%',
-            right: '4%',
-            bottom: '15%',
-            top: '5%',
+            left: '5%',
+            right: '5%',
+            bottom: '18%',
+            top: '8%',
             containLabel: true
         },
         xAxis: {
             type: 'value',
             name: 'Step',
             nameLocation: 'middle',
-            nameGap: 25
+            nameGap: 25,
+            axisLine: { lineStyle: { color: '#888' } },
+            axisLabel: { color: '#ccc' },
+            nameTextStyle: { color: '#aaa' },
+            splitLine: { lineStyle: { color: '#333' } }
         },
         yAxis: {
             type: 'value',
             name: 'Value',
             nameLocation: 'middle',
-            nameGap: 30
+            nameGap: 35,
+            axisLine: { lineStyle: { color: '#888' } },
+            axisLabel: { color: '#ccc' },
+            nameTextStyle: { color: '#aaa' },
+            splitLine: { lineStyle: { color: '#333' } }
         },
-        series: series
-    };
-
-    chartInstance.setOption(option);
+        series
+    });
     chartInstance.resize();
 };
 
-onMounted(() => {
-    initChart();
-});
+onMounted(initChart);
 
-watch(() => props.selectedExperiments, () => {
-    updateChart();
-}, { deep: true });
-
-watch(() => props.data, () => {
-    updateChart();
-}, { deep: true });
+watch(() => props.selectedExperiments, updateChart, { deep: true });
+watch(() => props.data, updateChart, { deep: true });
 </script>
 
 <template>
     <div class="chart-container">
-        <div ref="chart" style="height: 400px; width: 100%;"></div>
+        <div ref="chart" class="chart"></div>
     </div>
 </template>
 
@@ -127,8 +106,14 @@ watch(() => props.data, () => {
 .chart-container {
     width: 100%;
     margin-top: 2rem;
-    border: 1px solid #eee;
-    border-radius: 4px;
     padding: 1rem;
+    background: #1e1e1e;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+.chart {
+    width: 100%;
+    height: 400px;
 }
 </style>
