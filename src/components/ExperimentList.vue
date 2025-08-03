@@ -7,16 +7,25 @@ const props = defineProps({
     experiments: {
         type: Array,
         required: true
+    },
+    data: {
+        type: Array,
+        default: () => []
     }
 });
 
 const selectedExperiments = ref([]);
-
 const emit = defineEmits(['selection-change']);
 
+const filteredExperiments = computed(() =>
+    props.experiments
+        .filter(id => id !== undefined && id !== null && id !== '')
+        .map(id => ({ experiment_id: id }))
+);
+
 const onSelectionChange = (e) => {
-    selectedExperiments.value = e.value;
-    emit('selection-change', e.value);
+    selectedExperiments.value = e.value.map(item => item.experiment_id);
+    emit('selection-change', selectedExperiments.value);
 };
 </script>
 
@@ -24,11 +33,12 @@ const onSelectionChange = (e) => {
     <div class="experiments-list">
         <h3>Experiments List</h3>
         <DataTable
-                :value="props.experiments.map(id => ({ experiment_id: id }))"
+                :value="filteredExperiments"
                 v-model:selection="selectedExperiments"
                 selectionMode="multiple"
                 dataKey="experiment_id"
                 class="small-table"
+                @selection-change="onSelectionChange"
         >
             <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
             <Column field="experiment_id" header="Experiment ID"></Column>

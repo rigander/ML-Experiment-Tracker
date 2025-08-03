@@ -5,12 +5,14 @@ import { FileUpload } from "primevue";
 import Column from 'primevue/column';
 import Papa from 'papaparse';
 import ExperimentList from "./ExperimentList.vue";
+import ExperimentChart from "./ExperimentChart.vue";
 
 const data = ref([]);
 const loading = ref(false);
 const selectedRows = ref([]);
 const currentFileName = ref('');
 const uniqueExperiments = ref([]);
+const selectedChartExperiments = ref([]);
 
 const handleFileUpload = (event) => {
     const file = event.files[0];
@@ -26,7 +28,6 @@ const handleFileUpload = (event) => {
                 ...row,
                 id: index
             }));
-
             uniqueExperiments.value = [...new Set(results.data.map(item => item.experiment_id))];
             loading.value = false;
         },
@@ -34,6 +35,10 @@ const handleFileUpload = (event) => {
             loading.value = false;
         }
     });
+};
+
+const handleExperimentSelection = (selected) => {
+    selectedChartExperiments.value = selected;
 };
 </script>
 
@@ -60,29 +65,40 @@ const handleFileUpload = (event) => {
 
         <div v-if="loading">Loading data...</div>
 
-        <div class="tables-container" v-if="data.length > 0">
-            <ExperimentList :experiments="uniqueExperiments" />
+        <div v-if="data.length > 0">
+            <div class="tables-container">
+                <ExperimentList
+                    :experiments="uniqueExperiments"
+                    :data="data"
+                    @selection-change="handleExperimentSelection"
+                />
 
-            <div class="main-table-wrapper">
-                <DataTable
-                    :value="data"
-                    v-model:selection="selectedRows"
-                    dataKey="id"
-                    selectionMode="multiple"
-                    :paginator="true"
-                    :rows="10"
-                    :rowsPerPageOptions="[10, 20, 50]"
-                    scrollable
-                    scrollHeight="flex"
-                    class="data-table"
-                >
-                    <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-                    <Column field="experiment_id" header="Experiment ID"></Column>
-                    <Column field="metric_name" header="Metric"></Column>
-                    <Column field="step" header="Step"></Column>
-                    <Column field="value" header="Value"></Column>
-                </DataTable>
+                <div class="main-table-wrapper">
+                    <DataTable
+                        :value="data"
+                        v-model:selection="selectedRows"
+                        dataKey="id"
+                        selectionMode="multiple"
+                        :paginator="true"
+                        :rows="10"
+                        :rowsPerPageOptions="[10, 20, 50]"
+                        scrollable
+                        scrollHeight="flex"
+                        class="data-table"
+                    >
+                        <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+                        <Column field="experiment_id" header="Experiment ID"></Column>
+                        <Column field="metric_name" header="Metric"></Column>
+                        <Column field="step" header="Step"></Column>
+                        <Column field="value" header="Value"></Column>
+                    </DataTable>
+                </div>
             </div>
+
+            <ExperimentChart
+                :data="data"
+                :selectedExperiments="selectedChartExperiments"
+            />
         </div>
     </div>
 </template>
@@ -110,7 +126,7 @@ const handleFileUpload = (event) => {
 .tables-container {
     display: flex;
     gap: 1rem;
-    height: 600px;
+    height: 400px;
     margin-top: 1rem;
 }
 .main-table-wrapper {
