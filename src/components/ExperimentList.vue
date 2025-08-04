@@ -28,11 +28,11 @@ watch(selectedExperiments, (newVal) => {
     <div class="experiments-list">
         <h3>Experiments List</h3>
         <DataTable
-                :value="filteredExperiments"
-                v-model:selection="selectedExperiments"
-                selectionMode="multiple"
-                dataKey="experiment_id"
-                class="small-table"
+            :value="filteredExperiments"
+            v-model:selection="selectedExperiments"
+            selectionMode="multiple"
+            dataKey="experiment_id"
+            class="small-table"
         >
             <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
             <Column field="experiment_id" header="Experiment ID"></Column>

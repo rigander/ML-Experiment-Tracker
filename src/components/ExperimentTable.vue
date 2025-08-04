@@ -126,7 +126,7 @@ const handleExperimentSelection = (selected) => {
 .tables-container {
     display: flex;
     gap: 1rem;
-    height: 400px;
+    height: 597px;
     margin-top: 1rem;
 }
 .main-table-wrapper {
