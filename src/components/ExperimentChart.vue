@@ -7,6 +7,10 @@ const props = defineProps({
     selectedExperiments: Array
 });
 
+// Конфигурация для оптимизации
+const MAX_POINTS_PER_LINE = 500; // Максимум точек на линию
+const DOWN_SAMPLE_FACTOR = 5; // Прореживание данных
+
 const lineColors = [
     '#42A5F5', '#66BB6A', '#FFA726', '#AB47BC',
     '#FF7043', '#26C6DA', '#D4E157', '#5C6BC0',
@@ -16,35 +20,46 @@ const lineColors = [
 const chartOptions = ref({
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+        duration: 0 // Отключаем анимацию для производительности
+    },
     scales: {
         y: {
             title: { display: true, text: 'Metric Value' }
         },
         x: {
-            title: { display: true, text: 'Step' }
+            title: { display: true, text: 'Step' },
+            type: 'linear'
         }
     },
     plugins: {
         legend: {
             display: true,
-            position: 'top',
-            labels: {
-                color: '#ffffff'
-            }
+            position: 'top'
         },
-        tooltip: {
-            mode: 'index',
-            intersect: false
+        decimation: { // Встроенное прореживание данных в Chart.js
+            enabled: true,
+            algorithm: 'min-max'
         }
-    },
-    interaction: {
-        mode: 'nearest',
-        axis: 'x',
-        intersect: false
     }
 });
 
 const metricCharts = ref([]);
+
+// Функция для прореживания точек данных
+const downsampleData = (points, maxPoints) => {
+    if (points.length <= maxPoints) return points;
+
+    const step = Math.ceil(points.length / maxPoints);
+    const result = [];
+
+    // Берем каждую step-точку + сохраняем важные точки (минимумы/максимумы)
+    for (let i = 0; i < points.length; i += step) {
+        result.push(points[i]);
+    }
+
+    return result;
+};
 
 const prepareChartData = () => {
     if (!props.selectedExperiments || props.selectedExperiments.length === 0) {
@@ -52,56 +67,53 @@ const prepareChartData = () => {
         return;
     }
 
-    // Группируем данные сначала по метрикам, затем по экспериментам
     const metricsData = {};
 
     props.data.forEach(item => {
         if (!props.selectedExperiments.includes(item.experiment_id)) return;
         if (!item.metric_name || item.step === '' || item.value === '') return;
 
+        const step = Number(item.step);
+        if (isNaN(step)) return;
+
         const metric = item.metric_name;
         const expId = item.experiment_id;
+        const value = Number(item.value);
 
-        if (!metricsData[metric]) {
-            metricsData[metric] = {};
-        }
-
-        if (!metricsData[metric][expId]) {
-            metricsData[metric][expId] = [];
-        }
-
-        metricsData[metric][expId].push({
-            x: Number(item.step),
-            y: Number(item.value)
-        });
+        metricsData[metric] ??= {};
+        metricsData[metric][expId] ??= [];
+        metricsData[metric][expId].push({ x: step, y: value });
     });
 
-    // Формируем данные для каждого графика метрики
-    metricCharts.value = Object.entries(metricsData).map(([metric, expData], metricIndex) => {
-        const datasets = Object.entries(expData).map(([expId, points], expIndex) => ({
-            label: `Exp ${expId}`,
-            borderColor: lineColors[expIndex % lineColors.length],
-            backgroundColor: lineColors[expIndex % lineColors.length],
-            fill: false,
-            tension: 0.1,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            data: points.sort((a, b) => a.x - b.x)
-        }));
+    metricCharts.value = Object.entries(metricsData).map(([metric, expData]) => {
+        const datasets = Object.entries(expData).map(([expId, points], expIndex) => {
+            const sortedPoints = [...points].sort((a, b) => a.x - b.x);
+            const downsampled = downsampleData(sortedPoints, MAX_POINTS_PER_LINE);
 
-        return {
-            metric,
-            chartData: {
-                datasets
-            }
-        };
+            return {
+                label: `Exp ${expId}`,
+                borderColor: lineColors[expIndex % lineColors.length],
+                backgroundColor: 'transparent',
+                borderWidth: 1,
+                pointRadius: 0, // Не показываем точки для производительности
+                pointHoverRadius: 3,
+                data: downsampled
+            };
+        });
+
+        return { metric, chartData: { datasets } };
     });
 };
 
+// Используем debounce для обработки изменений
+let prepareTimeout = null;
 watch(
     () => [props.data, props.selectedExperiments],
-    prepareChartData,
-    { deep: true, immediate: true }
+    () => {
+        clearTimeout(prepareTimeout);
+        prepareTimeout = setTimeout(prepareChartData, 200);
+    },
+    { deep: true }
 );
 </script>
 
@@ -123,6 +135,7 @@ watch(
         </div>
     </div>
 </template>
+
 
 <style scoped>
 .charts-container {
