@@ -5,7 +5,6 @@
         </div>
 
         <div v-for="chart in metricCharts" :key="chart.metric" class="metric-chart">
-            <h3>{{ chart.metric }}</h3>
             <Chart
                 type="line"
                 :data="chart.chartData"
@@ -17,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed } from 'vue';
 import Chart from 'primevue/chart';
 
 const props = defineProps({
@@ -25,73 +24,42 @@ const props = defineProps({
     selectedExperiments: Array
 });
 
-const lineColors = ['#42A5F5', '#66BB6A', '#FFA726', '#AB47BC', '#FF7043'];
-const metricCharts = ref([]);
-const DOWNSAMPLE_FACTOR = 10; // Берем каждую 10-ю точку
+const MAX_POINTS = 500;
+const Y_AXIS_PADDING = 0.05;
+const COLORS = ['#42A5F5', '#66BB6A', '#FFA726', '#AB47BC', '#FF7043', '#26C6DA', '#D4E157'];
 
-// Функция для интеллектуального даунсэмплинга
-const downsampleData = (points, factor) => {
-    if (points.length <= 1000) return points; // Не даунсэмплим если точек мало
+const metricCharts = computed(() => {
+    const chartsMap = {};
 
-    const result = [];
-    const step = Math.max(1, Math.floor(points.length / (points.length / factor)));
-    result.push(points[0]);
+    props.data
+        .filter(item => props.selectedExperiments.includes(item.experiment_id))
+        .forEach(({ experiment_id, metric_name, step, value }) => {
+            if (!metric_name || step == null || value == null) return;
+            chartsMap[metric_name] ??= {};
+            chartsMap[metric_name][experiment_id] ??= [];
+            chartsMap[metric_name][experiment_id].push({ x: step, y: value });
+        });
 
-    for (let i = step; i < points.length; i += step) {
-        const segment = points.slice(i - step, i);
-        const max = segment.reduce((a, b) => a.y > b.y ? a : b);
-        const min = segment.reduce((a, b) => a.y < b.y ? a : b);
-
-        if (max.x !== min.x) {
-            result.push(max, min);
-        } else {
-            result.push(max);
-        }
-    }
-
-    result.push(points[points.length - 1]);
-    return result;
-};
-
-const prepareChartData = () => {
-    if (!props.selectedExperiments?.length) {
-        metricCharts.value = [];
-        return;
-    }
-
-    const metricsData = {};
-
-    props.data.forEach(item => {
-        if (!props.selectedExperiments.includes(item.experiment_id)) return;
-        if (!item.metric_name || item.step == null || item.value == null) return;
-
-        const step = typeof item.step === 'string' ? parseFloat(item.step) : Number(item.step);
-        const value = typeof item.value === 'string' ? parseFloat(item.value) : Number(item.value);
-
-        if (isNaN(step) || isNaN(value)) return;
-
-        const metric = item.metric_name;
-        const expId = item.experiment_id;
-
-        metricsData[metric] ??= {};
-        metricsData[metric][expId] ??= [];
-        metricsData[metric][expId].push({ x: step, y: value });
-    });
-
-    metricCharts.value = Object.entries(metricsData).map(([metric, expData]) => {
-        const datasets = Object.entries(expData).map(([expId, points], index) => {
-            const sortedPoints = points.sort((a, b) => a.x - b.x);
-            const downsampled = downsampleData(sortedPoints, DOWNSAMPLE_FACTOR);
+    return Object.entries(chartsMap).map(([metric, expData], index) => {
+        const datasets = Object.entries(expData).map(([expId, points], i) => {
+            const sampled = points.length > MAX_POINTS
+                ? points.filter((_, idx) => idx % Math.ceil(points.length / MAX_POINTS) === 0)
+                : points;
 
             return {
                 label: `Exp ${expId}`,
-                borderColor: lineColors[index % lineColors.length],
-                backgroundColor: 'transparent',
-                borderWidth: 2,
+                data: sampled.sort((a, b) => a.x - b.x),
+                borderColor: COLORS[i % COLORS.length],
+                fill: false,
+                tension: 0.1,
                 pointRadius: 0,
-                data: downsampled
+                borderWidth: 2
             };
         });
+
+        const allY = datasets.flatMap(d => d.data.map(p => p.y));
+        const [minY, maxY] = [Math.min(...allY), Math.max(...allY)];
+        const padding = (maxY - minY) * Y_AXIS_PADDING || 0.01;
 
         return {
             metric,
@@ -99,39 +67,42 @@ const prepareChartData = () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        title: { display: true, text: 'Metric Value' },
-                        beginAtZero: false
-                    },
-                    x: {
-                        title: { display: true, text: 'Step' },
-                        type: 'linear'
-                    }
-                },
                 plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#fff' }
+                    },
                     tooltip: {
                         callbacks: {
-                            label: (context) => {
-                                return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} at step ${context.parsed.x}`;
-                            }
+                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)} at step ${ctx.parsed.x}`
                         }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Step',
+                            color: '#fff'
+                        },
+                        ticks: { color: '#ccc' }
                     },
-                    decimation: {
-                        enabled: true,
-                        algorithm: 'min-max'
+                    y: {
+                        min: minY - padding,
+                        max: maxY + padding,
+                        title: {
+                            display: true,
+                            text: metric,
+                            color: '#fff'
+                        },
+                        ticks: { color: '#ccc' }
                     }
                 }
             }
         };
     });
-};
-
-watch(
-    () => [props.data, props.selectedExperiments],
-    prepareChartData,
-    { deep: true, immediate: true }
-);
+});
 </script>
 
 <style scoped>
