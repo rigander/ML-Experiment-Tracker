@@ -1,3 +1,19 @@
+<template>
+    <div class="experiments-list">
+        <h3>Experiments List</h3>
+        <DataTable
+            :value="filteredExperiments"
+            v-model:selection="selectedExperiments"
+            selectionMode="multiple"
+            dataKey="experiment_id"
+            class="small-table"
+        >
+            <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+            <Column field="experiment_id" header="Experiment ID"></Column>
+        </DataTable>
+    </div>
+</template>
+
 <script setup>
 import { ref, computed, watch } from 'vue';
 import DataTable from 'primevue/datatable';
@@ -24,22 +40,6 @@ watch(selectedExperiments, (newVal) => {
 }, { deep: true });
 </script>
 
-<template>
-    <div class="experiments-list">
-        <h3>Experiments List</h3>
-        <DataTable
-            :value="filteredExperiments"
-            v-model:selection="selectedExperiments"
-            selectionMode="multiple"
-            dataKey="experiment_id"
-            class="small-table"
-        >
-            <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-            <Column field="experiment_id" header="Experiment ID"></Column>
-        </DataTable>
-    </div>
-</template>
-
 <style scoped>
 .experiments-list {
     flex: 0 0 300px;
@@ -62,6 +62,5 @@ watch(selectedExperiments, (newVal) => {
 h3 {
     margin-top: 0;
     margin-bottom: 1rem;
-    color: #333;
 }
 </style>

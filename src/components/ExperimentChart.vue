@@ -1,3 +1,21 @@
+<template>
+    <div class="charts-container">
+        <div v-if="!metricCharts.length" class="empty-state">
+            Select experiments to display metrics
+        </div>
+
+        <div v-for="chart in metricCharts" :key="chart.metric" class="metric-chart">
+            <h3>{{ chart.metric }}</h3>
+            <Chart
+                type="line"
+                :data="chart.chartData"
+                :options="chart.options"
+                :height="300"
+            />
+        </div>
+    </div>
+</template>
+
 <script setup>
 import { ref, watch } from 'vue';
 import Chart from 'primevue/chart';
@@ -115,24 +133,6 @@ watch(
     { deep: true, immediate: true }
 );
 </script>
-
-<template>
-    <div class="charts-container">
-        <div v-if="!metricCharts.length" class="empty-state">
-            Select experiments to display metrics
-        </div>
-
-        <div v-for="chart in metricCharts" :key="chart.metric" class="metric-chart">
-            <h3>{{ chart.metric }}</h3>
-            <Chart
-                type="line"
-                :data="chart.chartData"
-                :options="chart.options"
-                :height="300"
-            />
-        </div>
-    </div>
-</template>
 
 <style scoped>
 .charts-container {
