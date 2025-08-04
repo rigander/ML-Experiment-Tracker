@@ -128,6 +128,7 @@ const handleExperimentSelection = (selected) => {
     gap: 1rem;
     height: 597px;
     margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 .main-table-wrapper {
     flex: 1;
