@@ -107,17 +107,18 @@ const metricCharts = computed(() => {
 
 <style scoped>
 .charts-container {
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    box-sizing: border-box;
 }
-
 .metric-chart {
+    width: 100%;
     background: #1e1e1e;
     border-radius: 8px;
     padding: 1rem;
 }
-
 .empty-state {
     padding: 1rem;
     text-align: center;

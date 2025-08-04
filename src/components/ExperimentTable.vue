@@ -92,7 +92,11 @@ const handleFileUpload = (event) => {
     margin: 0 auto;
     padding: 2rem;
 }
-
+h1 {
+    font-size: 2.2rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
 .file-upload-container {
     display: flex;
     align-items: center;
@@ -108,5 +112,9 @@ const handleFileUpload = (event) => {
 
 .data-table {
     flex: 1;
+}
+.file-info{
+    margin-left: 165px;
+    font-size: 20px;
 }
 </style>
