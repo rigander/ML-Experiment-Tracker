@@ -8,4 +8,4 @@ Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://
 
 [👉 Open Live App](https://ml-experiment-tracker-ten.vercel.app/)
 
-This is a test task for DataForce. The application is a frontend visualization tool for experiments loaded from CSV.
+The application is a frontend visualization tool for experiments loaded from CSV.

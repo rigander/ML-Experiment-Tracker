@@ -1,7 +1,6 @@
 <template>
     <div class="container">
         <h1>ML Experiment Tracker</h1>
-
         <div class="file-upload-container">
             <FileUpload
                 mode="basic"
@@ -11,7 +10,6 @@
                 :auto="true"
                 :customUpload="true"
             />
-
             <div v-if="currentFileName" class="file-info">
                 Loaded: {{ currentFileName }}
             </div>
